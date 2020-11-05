@@ -1,4 +1,4 @@
-# from config import TOKEN
+from config import TOKEN
 # from db import test
 import telebot
 
