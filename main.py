@@ -1,5 +1,5 @@
 from config import TOKEN
-from db import test
+# from db import test
 import telebot
 
 bot = telebot.TeleBot(TOKEN)
