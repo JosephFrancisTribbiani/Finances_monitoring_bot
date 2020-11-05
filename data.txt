@@ -1,0 +1,250 @@
+{
+    "message_id": 152,
+    "from": {
+        "id": 341739217,
+        "is_bot": false,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 341739217,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "type": "private"
+    },
+    "date": 1604500801,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 166,
+    "from": {
+        "id": 341739217,
+        "is_bot": false,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 341739217,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "type": "private"
+    },
+    "date": 1604501186,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 168,
+    "from": {
+        "id": 341739217,
+        "is_bot": false,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 341739217,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "type": "private"
+    },
+    "date": 1604501570,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 170,
+    "from": {
+        "id": 341739217,
+        "is_bot": false,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 341739217,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "type": "private"
+    },
+    "date": 1604501773,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 173,
+    "from": {
+        "id": 341739217,
+        "is_bot": false,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 341739217,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "type": "private"
+    },
+    "date": 1604501855,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 176,
+    "from": {
+        "id": 341739217,
+        "is_bot": false,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 341739217,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "type": "private"
+    },
+    "date": 1604501980,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 179,
+    "from": {
+        "id": 341739217,
+        "is_bot": false,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 341739217,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "type": "private"
+    },
+    "date": 1604502028,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 182,
+    "from": {
+        "id": 341739217,
+        "is_bot": false,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 341739217,
+        "first_name": "Joseph",
+        "last_name": "Tribbiani",
+        "type": "private"
+    },
+    "date": 1604502371,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 185,
+    "from": {
+        "id": 330639795,
+        "is_bot": false,
+        "first_name": "\u042e\u0440\u0430",
+        "username": "Yura_92",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 330639795,
+        "first_name": "\u042e\u0440\u0430",
+        "username": "Yura_92",
+        "type": "private"
+    },
+    "date": 1604502384,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
+{
+    "message_id": 188,
+    "from": {
+        "id": 330639795,
+        "is_bot": false,
+        "first_name": "\u042e\u0440\u0430",
+        "username": "Yura_92",
+        "language_code": "ru"
+    },
+    "chat": {
+        "id": 330639795,
+        "first_name": "\u042e\u0440\u0430",
+        "username": "Yura_92",
+        "type": "private"
+    },
+    "date": 1604502829,
+    "text": "/start",
+    "entities": [
+        {
+            "offset": 0,
+            "length": 6,
+            "type": "bot_command"
+        }
+    ]
+}
