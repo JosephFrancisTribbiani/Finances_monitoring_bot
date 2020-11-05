@@ -28,7 +28,7 @@ def test(msg):
     conn = get_connection()
     cur = conn.cursor()
 
-    user = 3
+    user = 4
     fname = msg.chat.first_name
     lname = msg.chat.last_name
     nick = 'Kisonka'
