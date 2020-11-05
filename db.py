@@ -1,5 +1,5 @@
 import psycopg2
-from config import DATABASE_URL
+from config import DB_LINK
 
 __connection = None
 
@@ -7,7 +7,7 @@ __connection = None
 def get_connection():
     global __connection
     if __connection is None:
-        __connection = psycopg2.connect(DATABASE_URL, sslmode='require')
+        __connection = psycopg2.connect(DB_LINK, sslmode='require')
     return __connection
 
 #
