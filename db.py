@@ -1,14 +1,14 @@
 import psycopg2
-# from config import DB_LINK
+from config import DATABASE_URL
 
 __connection = None
 
 
-# def get_connection():
-#     global __connection
-#     if __connection is None:
-#         __connection = psycopg2.connect(DB_LINK, sslmode='require')
-#     return __connection
+def get_connection():
+    global __connection
+    if __connection is None:
+        __connection = psycopg2.connect(DATABASE_URL, sslmode='require')
+    return __connection
 
 #
 # def init_db(force: bool = False):
@@ -24,15 +24,17 @@ __connection = None
 #                 ''')
 
 
-# def test(msg):
-#     conn = get_connection()
-#     cur = conn.cursor()
-#
-#     user = 3
-#     fname = msg.chat.first_name
-#     lname = msg.chat.last_name
-#
-#     cur.execute(f'''
-#                 INSERT INTO users(user_id, fname, lname, nickname)
-#                 VALUES ({user}, {fname}, {lname}, NULL);
-#                 ''')
+def test(msg):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    user = 3
+    fname = msg.chat.first_name
+    lname = msg.chat.last_name
+    nick = 'Kisonka'
+
+    cur.execute(f'''
+                INSERT INTO users(user_id, fname, lname, nickname)
+                VALUES (?, ?, ?, ?);
+                ''', (user, fname, lname, nick))
+    conn.commit()
