@@ -7,7 +7,7 @@ bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(commands=['start'])
 def hello(message):
-    test(message)
+    # test(message)
     bot.send_message(message.chat.id, 'Hi')
     # get_info(msg=message)
     # write_to_chat(message.chat.id, message.chat.first_name, message.chat.last_name)
