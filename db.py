@@ -83,3 +83,19 @@ def collect_user(usr, conn, cur):
                 ''', (usr.id, usr.first_name.capitalize(), usr.last_name.capitalize(), usr.username, usr.language_code, \
                       datetime.today().strftime('%Y-%m-%d')))
     conn.commit()
+
+
+@get_connection
+def collect_msg_into_db(u_id: str, msg: str, conn, cur):
+    """
+    Функция записывает в таблицу messages текст сообщения
+    :param u_id: id пользователя
+    :param msg: текст сообщения
+    :param conn:
+    :param cur:
+    :return: nothing
+    """
+    cur.execute('''INSERT INTO messages (u_id, date, message)
+                VALUES (%s, %s, %s);
+                ''', (u_id, datetime.today().strftime('%Y-%m-%d'), msg))
+    conn.commit()
