@@ -21,11 +21,11 @@ def start(message):
 @bot.message_handler(commands=['help'])
 def start(message):
     collect_user(message.from_user)
-    bot.send_message(message.chat.id, 'Для того чтобы я мог записать трату, отправь мне сообщение в формате:\n'
-                                      '[Категория] [сумма] [дата]\n'
-                                      'где дата - необязательный параметр\n'
+    bot.send_message(message.chat.id, 'Для того, чтобы я мог записать трату, отправь мне сообщение в формате:\n'
+                                      '**[Категория] [сумма] [дата]**\n'
+                                      'где **дата** - необязательный параметр\n'
                                       'Например:\n'
-                                      'Общественный транспорт 28.50 1/11/2019\n'
+                                      '__Общественный транспорт 28.50 1/11/2019__\n'
                                       'Это значит что 1-го ноября 2019 года я потратил 25 руб. 50 копеек на проезд '
                                       'в общественном транспорте\n'
                                       'Если дату не укажешь, я пойму что трата была совершена сегодня\n'
@@ -34,12 +34,12 @@ def start(message):
                                       'Или день и месяц, тогда год - текущий\n'
                                       '\n'
                                       'Если категория указана новая, то я предложу тебе ее добавить (вдруг ты случайно '
-                                      'ошибся в написании категории - написал "ТранспАрт" вместо "Транспорт")\n'
+                                      'ошибся в написании категории - написал **ТранспАрт** вместо **Транспорт**)\n'
                                       'Категории также можно добавить списком, для этого просто напиши мне '
-                                      '"Добавь категорию еда" или "Добавь категории еда, бензин, одежда"\n'
+                                      '**Добавь категорию еда** или **Добавь категории еда, бензин, одежда**\n'
                                       '\n'
                                       'Что бы вывести список твоих категорий напиши мне:\n'
-                                      'Мои категории\n'
+                                      '**Мои категории**\n'
                                       'И я все сделаю\n'
                                       'Удачи! Надеюсь мы с тобой подружимся')
 
@@ -61,9 +61,9 @@ def add_categories(message):
         if len(categories) == 1 and length == 1:
             r_msg = 'Добавил'
         elif length == 1:
-            r_msg = f'Новая категория {added_cat[0]} добавлена'
+            r_msg = f'Новая категория **{added_cat[0]}** добавлена'
         elif length > 1:
-            r_msg = f'Новые категории {", ".join(added_cat)} добавлены'
+            r_msg = f'Новые категории **{", ".join(added_cat)}** добавлены'
         else:
             r_msg = f'Уже есть'
         bot.send_message(message.chat.id, r_msg)
@@ -80,7 +80,7 @@ def return_cat(message):
         bot.send_message(message.chat.id, 'Категории не добавлены')
     else:
         cat_s = '\n'.join(my_cat)
-        bot.send_message(message.chat.id, f"Твои категории:\n{cat_s}")
+        bot.send_message(message.chat.id, f"**Твои категории:**\n{cat_s}")
 
 
 @bot.message_handler(func=lambda msg: test_msg(msg) == 3, content_types=['text'])
@@ -92,7 +92,7 @@ def collect_exp(message):
         collect_msg_into_db(message.from_user.id, message.text)
         if not check_category(cat, message.from_user.id):
 
-            bot.send_message(message.chat.id, f"Категорию {cat} для тебя я еще не добавлял\n"
+            bot.send_message(message.chat.id, f"Категорию **{cat}** для тебя я еще не добавлял\n"
                                               "Добавить новую категорию и трату?",
                              reply_markup=y_n_keyboard(f'add|{cat}|{int(amount)}|{d}'))
         else:
