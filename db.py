@@ -14,8 +14,8 @@ def get_connection(func):
     @wraps(func)
     def inner(*args, **kwargs):
         with psycopg2.connect(DATABASE_URL) as conn, conn.cursor() as cur:
-            func(*args, conn=conn, cur=cur, **kwargs)
-
+            res = func(*args, conn=conn, cur=cur, **kwargs)
+        return res
     return inner
 
 
@@ -30,7 +30,7 @@ def init_db(conn, cur, force: bool = False):
     """
 
     if force:
-        cur.execute('DROP TABLE IF EXISTS users, messages, exp_types, expenses, u_expenses;')
+        cur.execute('DROP TABLE IF EXISTS users, messages, expenses, u_expenses;')
 
     cur.execute('''CREATE TABLE IF NOT EXISTS users (
                 u_id INTEGER PRIMARY KEY,
@@ -38,33 +38,25 @@ def init_db(conn, cur, force: bool = False):
                 l_name TEXT,
                 n_name TEXT,
                 l_code TEXT,
-                date DATE);
+                date DATE NOT NULL);
                 ''')
     cur.execute('''CREATE TABLE IF NOT EXISTS messages (
                 m_id SERIAL PRIMARY KEY,
-                u_id INTEGER REFERENCES users (u_id),
-                date DATE,
-                message TEXT);
-                ''')
-    cur.execute('''CREATE TABLE IF NOT EXISTS exp_types (
-                type_id SERIAL PRIMARY KEY,
-                type_name TEXT UNIQUE);
-                ''')
-    cur.execute('''INSERT INTO exp_types (type_name)
-                    VALUES ('ОБЯЗАТЕЛЬНЫЕ'),
-                           ('ПОСТОЯННЫЕ'),
-                           ('СЛУЧАЙНЫЕ') ON CONFLICT DO NOTHING;
-                    ''')
-    cur.execute('''CREATE TABLE IF NOT EXISTS expenses (
-                exp_id SERIAL PRIMARY KEY,
-                exp_name TEXT);
+                u_id INTEGER NOT NULL REFERENCES users (u_id),
+                date DATE NOT NULL,
+                message TEXT NOT NULL);
                 ''')
     cur.execute('''CREATE TABLE IF NOT EXISTS u_expenses (
-                id SERIAL PRIMARY KEY,
+                exp_id SERIAL PRIMARY KEY,
                 u_id INTEGER REFERENCES users (u_id),
-                exp_id INTEGER REFERENCES expenses (exp_id),
-                date DATE,
-                value NUMERIC);
+                exp_name TEXT,
+                UNIQUE (u_id, exp_name));
+                ''')
+    cur.execute('''CREATE TABLE IF NOT EXISTS expenses (
+                id SERIAL PRIMARY KEY,
+                exp_id INTEGER NOT NULL REFERENCES u_expenses (exp_id),
+                value NUMERIC NOT NULL,
+                date DATE NOT NULL);
                 ''')
     conn.commit()
 
@@ -98,4 +90,56 @@ def collect_msg_into_db(u_id: str, msg: str, conn, cur):
     cur.execute('''INSERT INTO messages (u_id, date, message)
                 VALUES (%s, %s, %s);
                 ''', (u_id, datetime.today().strftime('%Y-%m-%d'), msg))
+    conn.commit()
+
+
+@get_connection
+def check_category(cat: str, u_id: str, conn, cur):
+    """
+    Функция проверяет новую ли категорию указал пользователь, или она уже присутствует в таблице u_expenses
+    :param cat: название категории (все буквы маленькие)
+    :param u_id: id пользователя
+    :param cur:
+    :return: True или False
+    """
+    cur.execute('''SELECT EXISTS (SELECT 1 FROM u_expenses WHERE u_id=%s AND exp_name=%s);
+                ''', (u_id, cat))
+    return cur.fetchone()[0]
+
+
+@get_connection
+def add_cat_into_db(u_id, category, conn, cur):
+    cur.execute('''INSERT INTO u_expenses (u_id, exp_name)
+                    VALUES (%s, %s);
+                    ''', (u_id, category))
+    conn.commit()
+
+
+@get_connection
+def check_user(u_id: str, conn, cur) -> bool:
+    """
+    Функция проверят есть ли пользователь в таблице users
+    :param u_id: id пользователя
+    :param conn:
+    :param cur:
+    :return: True или False
+    """
+    cur.execute('''SELECT EXISTS (SELECT 1 FROM users WHERE u_id=%s);
+                ''', (u_id,))
+    return cur.fetchone()[0]
+
+
+@get_connection
+def get_my_cat(u_id: str, conn, cur) -> list:
+    cur.execute('''SELECT exp_name FROM u_expenses WHERE u_id=%s;
+                ''', (u_id,))
+    return cur.fetchall()
+
+
+@get_connection
+def add_exp_into_db(*args, conn, cur):
+    cur.execute('''
+    INSERT INTO expenses (exp_id, value, date)
+    VALUES ((SELECT exp_id FROM u_expenses WHERE u_id = %s AND exp_name = %s), %s, %s);
+    ''', args)  # args -> u_id, category, amount, date
     conn.commit()

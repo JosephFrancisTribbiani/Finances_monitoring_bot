@@ -12,3 +12,11 @@ class WrongDate(Exception):
 
     def __str__(self):
         return self.message
+
+
+class WrongAmount(Exception):
+    def __init__(self):
+        self.message = 'Указана неправильная сумма'
+
+    def __str__(self):
+        return self.message
