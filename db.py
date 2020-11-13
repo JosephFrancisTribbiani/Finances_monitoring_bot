@@ -72,7 +72,7 @@ def collect_user(usr, conn, cur):
     """
     cur.execute('''INSERT INTO users (u_id, f_name, l_name, n_name, l_code, date)
                 VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
-                ''', (usr.id, usr.first_name.capitalize(), usr.last_name.capitalize(), usr.username, usr.language_code, \
+                ''', (usr.id, usr.first_name, usr.last_name, usr.username, usr.language_code,
                       datetime.today().strftime('%Y-%m-%d')))
     conn.commit()
 

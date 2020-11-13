@@ -48,6 +48,15 @@ class TestMsgParser(unittest.TestCase):
         d = d.strftime('%Y-%m-%d')
         self.assertEqual(msg_parser(msg), ('Такси 365 до аэропорта номер 9', 250.6, d))
 
+    def testMsgParser5(self):
+        msg = 'Коммунальные услуги 4696.94 10/08'
+        day = 10
+        month = 8
+        year = datetime.today().year
+        d = date(year, month, day)
+        d = d.strftime('%Y-%m-%d')
+        self.assertEqual(msg_parser(msg), ('коммунальные услуги', 4696.94, d))
+
     def testMsgParser9(self):
         msg = '   Такси 365 до аэропорта номер 9   250.677   1/2/2020  '
         self.assertRaises(WrongAmount, msg_parser, msg)
