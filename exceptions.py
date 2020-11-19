@@ -20,3 +20,11 @@ class WrongAmount(Exception):
 
     def __str__(self):
         return self.message
+
+
+class NegativeLimit(Exception):
+    def __init__(self):
+        self.message = 'Указана неправильная сумма'
+
+    def __str__(self):
+        return self.message

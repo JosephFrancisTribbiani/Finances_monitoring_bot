@@ -23,7 +23,7 @@ class TestMsgParser(unittest.TestCase):
         year = datetime.today().year
         d = date(year, month, day)
         d = d.strftime('%Y-%m-%d')
-        self.assertEqual(msg_parser(msg), ('Такси до аэропорта', 99, d))
+        self.assertEqual(msg_parser(msg), ('такси до аэропорта', 'out', 99, d))
 
     def testMsgParser2(self):
         msg = '   Такси 365 до аэропорта номер 9   250.60   1/07  '
@@ -32,21 +32,21 @@ class TestMsgParser(unittest.TestCase):
         year = datetime.today().year
         d = date(year, month, day)
         d = d.strftime('%Y-%m-%d')
-        self.assertEqual(msg_parser(msg), ('Такси 365 до аэропорта номер 9', 250.6, d))
+        self.assertEqual(msg_parser(msg), ('такси 365 до аэропорта номер 9', 'out', 250.6, d))
 
     def testMsgParser3(self):
-        msg = '   Такси до аэропорта5   9   '
+        msg = '   Зарплата   +9   '
         d = datetime.today().strftime('%Y-%m-%d')
-        self.assertEqual(msg_parser(msg), ('Такси до аэропорта5', 9, d))
+        self.assertEqual(msg_parser(msg), ('зарплата', 'in', 9, d))
 
     def testMsgParser4(self):
-        msg = '   Такси 365 до аэропорта номер 9   250.60    11/12/2019  '
+        msg = '   Такси 365 до аэропорта номер 9    250.60    11/12/2019  '
         day = 11
         month = 12
         year = 2019
         d = date(year, month, day)
         d = d.strftime('%Y-%m-%d')
-        self.assertEqual(msg_parser(msg), ('Такси 365 до аэропорта номер 9', 250.6, d))
+        self.assertEqual(msg_parser(msg), ('такси 365 до аэропорта номер 9', 'out', 250.6, d))
 
     def testMsgParser5(self):
         msg = 'Коммунальные услуги 4696.94 10/08'
@@ -55,7 +55,7 @@ class TestMsgParser(unittest.TestCase):
         year = datetime.today().year
         d = date(year, month, day)
         d = d.strftime('%Y-%m-%d')
-        self.assertEqual(msg_parser(msg), ('коммунальные услуги', 4696.94, d))
+        self.assertEqual(msg_parser(msg), ('коммунальные услуги', 'out', 4696.94, d))
 
     def testMsgParser9(self):
         msg = '   Такси 365 до аэропорта номер 9   250.677   1/2/2020  '
@@ -68,10 +68,10 @@ class TestMsgParser(unittest.TestCase):
     def testMsgParser11(self):
         msg = '   Такси до аэропорта5   9,58   '
         d = datetime.today().strftime('%Y-%m-%d')
-        self.assertEqual(msg_parser(msg), ('Такси до аэропорта5', 9.58, d))
+        self.assertEqual(msg_parser(msg), ('такси до аэропорта5', 'out', 9.58, d))
 
     def testMsgParser12(self):
-        msg = '   Такси до аэропорта   250.67   44/2/2020  '
+        msg = '   Такси до аэропорта   -250.67   44/2/2020  '
         self.assertRaises(ValueError, msg_parser, msg)
 
     def testMsgParser13(self):
@@ -87,13 +87,13 @@ class TestMsgParser(unittest.TestCase):
         self.assertRaises(ValueError, msg_parser, msg)
 
     def testMsgParser16(self):
-        msg = '   Такси 365 до аэропорта номер 9   250   11/12/2019  '
+        msg = '   Подработка у майора на даче   +250   11/12/2019  '
         day = 11
         month = 12
         year = 2019
         d = date(year, month, day)
         d = d.strftime('%Y-%m-%d')
-        self.assertEqual(msg_parser(msg), ('Такси 365 до аэропорта номер 9', 250, d))
+        self.assertEqual(msg_parser(msg), ('подработка у майора на даче', 'in', 250, d))
 
 
 # Тестируем функцию test_msg из модуля logics
@@ -107,65 +107,41 @@ message = Msg()
 class TestMsgTypes(unittest.TestCase):
 
     def testMsgTypes1(self):
-        message.text = 'Добавь категории еда, вода, общественный транспорт'
+        message.text = '   Такси 5 до аэропорта    -250.555    1/1/2020'
         self.assertEqual(test_msg(message), 1)
 
     def testMsgTypes2(self):
-        message.text = 'Добавь категорию еда'
+        message.text = '   Такси 5 до аэропорта    250.550000    1/1/2020'
         self.assertEqual(test_msg(message), 1)
 
     def testMsgTypes3(self):
-        message.text = '    Выведи мои категории'
-        self.assertEqual(test_msg(message), 2)
+        message.text = '   Такси 5 до аэропорта    250    11/12'
+        self.assertEqual(test_msg(message), 1)
 
     def testMsgTypes4(self):
-        message.text = 'Мои категории   '
-        self.assertEqual(test_msg(message), 2)
+        message.text = '   Такси 5 до аэропорта    250.    11/12'
+        self.assertEqual(test_msg(message), 1)
 
     def testMsgTypes5(self):
-        message.text = '/my_categories  '
-        self.assertEqual(test_msg(message), 2)
+        message.text = '   Такси 5 до аэропорта    250    11/12/202'
+        self.assertEqual(test_msg(message), 1)
 
     def testMsgTypes6(self):
-        message.text = 'my_categories'
-        self.assertNotEqual(test_msg(message), 2)
+        message.text = '   Зарплата    +250    11/12/2020'
+        self.assertEqual(test_msg(message), 1)
 
     def testMsgTypes7(self):
-        message.text = '   Такси 5 до аэропорта    250.555    1/1/2020'
-        self.assertEqual(test_msg(message), 3)
+        message.text = '   Такси 5 до аэропорта   '
+        self.assertNotEqual(test_msg(message), 1)
 
     def testMsgTypes8(self):
-        message.text = '   Такси 5 до аэропорта    250.550000    1/1/2020'
-        self.assertEqual(test_msg(message), 3)
+        message.text = '   Такси 5 до аэропорта   11/12/2020'
+        self.assertNotEqual(test_msg(message), 1)
 
     def testMsgTypes9(self):
-        message.text = '   Такси 5 до аэропорта    250    11/12'
-        self.assertEqual(test_msg(message), 3)
+        message.text = '   Такси 5 до аэропорта   11/12'
+        self.assertNotEqual(test_msg(message), 1)
 
     def testMsgTypes10(self):
-        message.text = '   Такси 5 до аэропорта    250.    11/12'
-        self.assertEqual(test_msg(message), 3)
-
-    def testMsgTypes11(self):
-        message.text = '   Такси 5 до аэропорта    250    11/12/202'
-        self.assertEqual(test_msg(message), 3)
-
-    def testMsgTypes12(self):
-        message.text = '   Такси 5 до аэропорта    250    11/12/2020'
-        self.assertEqual(test_msg(message), 3)
-
-    def testMsgTypes13(self):
-        message.text = '   Такси 5 до аэропорта   '
-        self.assertNotEqual(test_msg(message), 3)
-
-    def testMsgTypes14(self):
-        message.text = '   Такси 5 до аэропорта   11/12/2020'
-        self.assertNotEqual(test_msg(message), 3)
-
-    def testMsgTypes15(self):
-        message.text = '   Такси 5 до аэропорта   11/12'
-        self.assertNotEqual(test_msg(message), 3)
-
-    def testMsgTypes16(self):
-        message.text = '   Такси 5 до аэропорта  300,22   11/12'
-        self.assertEqual(test_msg(message), 3)
+        message.text = '   Такси 5 до аэропорта  - 300,22   11/12'
+        self.assertEqual(test_msg(message), 1)

@@ -1,8 +1,10 @@
 from config import TOKEN
 from db import init_db, collect_user, collect_msg_into_db, add_cat_into_db, check_user, check_category
-from db import get_my_cat, add_exp_into_db
+from db import get_my_cat_db, add_exp_into_db, get_limit, set_state, set_limit_db, get_state
+from db import spent_daily
 from logics import msg_parser, test_msg, answers
 from exceptions import *
+from _collections import defaultdict
 import telebot
 from telebot import types
 import re
@@ -12,93 +14,182 @@ bot = telebot.TeleBot(token=TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    collect_user(message.from_user)
-    bot.send_message(message.chat.id, 'Привет!\n'
-                                      'Я помогу тебе контролировать твои расходы\n'
-                                      'Воспользуйся /help, что бы узнать что я умею и как этим пользоваться')
+    if not check_user(message.from_user.id):
+        collect_user(message.from_user)
+        bot.send_message(message.chat.id, 'Привет!\n'
+                                          'Я помогу тебе контролировать твои расходы\n'
+                                          'Для начала рекомендую тебе установить твой суточный лимит. '
+                                          'Это величина, которую не должна будет превышать сумма твоих трат за день\n'
+                                          'Это можно сделать с помощью команды /set\_limit\n\n'
+                                          'Для того, что бы узнать что я еще умею воспользуйся командой /help',
+                         parse_mode='Markdown', reply_markup=main_keyboard())
+    else:
+        bot.send_message(message.chat.id, 'Мы с тобой уже знакомы ' + u'\U0001F609' + '\n'
+                                                                                      'Если что-то непонятно, '
+                                                                                      'воспользуйся\n/help')
 
 
 @bot.message_handler(commands=['help'])
-def start(message):
+def help_ini(message):
     collect_user(message.from_user)
     bot.send_message(message.chat.id, 'Для того, чтобы я мог записать трату, отправь мне сообщение в формате:\n'
-                                      '*\[Категория\] \[сумма\] \[дата\]*\n'
-                                      'где *дата* \- необязательный параметр\n'
+                                      '*[Категория] [+-][сумма] [дата]*\n'
+                                      'где *дата* - необязательный параметр\n'
                                       'Например:\n'
-                                      '_Продукты 25\.50 1/11/2019_\n'
-                                      'Это значит что 1\-го ноября 2019 года я потратил 25 руб\. 50 копеек на '
+                                      '_Продукты 25.50 1/11/2019_\n'
+                                      'Это значит что 1-го ноября 2019 года я потратил 25 руб. 50 копеек на '
                                       'продукты\n'
+                                      '_Зарплата +5000_ - сегодня я получил зарплату в размере 5 т.р.\n'
+                                      '*"+"* или *"-"* необходимо указывать если категория новая '
+                                      '(что бы я мог понять куда ее отнести - к доходам или к расходам). По '
+                                      'умолчанию *"-"* (если не укажешь)\n'
                                       'Если дату не укажешь, я пойму что трата была совершена сегодня\n'
                                       'Также можно указать только день, в таком случае месяц и '
                                       'год будут считаться текущими\n'
-                                      'Или день и месяц, тогда год \- текущий\n'
-                                      '\n'
-                                      'Если категория указана новая, то я предложу тебе ее добавить \(вдруг ты случайно '
-                                      'ошибся в написании категории \- написал _ТранспАрт_ вместо _Транспорт_\)\n'
-                                      'Категории также можно добавить списком, для этого просто напиши мне '
-                                      '*Добавь категорию продукты* или *Добавь категории продукты, бензин, одежда*\n'
-                                      '\n'
-                                      'Что бы вывести список твоих категорий напиши мне '
-                                      '*Мои категории* '
-                                      'и я все сделаю\n'
-                                      'Удачи\! Надеюсь мы с тобой подружимся', parse_mode='MarkdownV2')
+                                      'Или день и месяц, тогда год - текущий\n\n'
+                                      'Описание команд ты можешь посмотреть с помощью /commands', parse_mode='Markdown')
 
 
-@bot.message_handler(func=lambda msg: test_msg(msg) == 1, content_types=['text'])
-def add_categories(message):
-    added_cat = list()
-    t = message.text.lower()
-    if bool(re.fullmatch(r'^добавь категори[ию] [а-яёa-z0-9 -+]+(?:[,][а-яёa-z0-9 -+]+)*', t)):
-        categories = [c.strip() for c in t[17:].split(',')]
-        if not check_user(message.from_user.id):
-            collect_user(message.from_user)
-        for category in categories:
-            if not check_category(category, message.from_user.id):
-                add_cat_into_db(message.from_user.id, category)
-                added_cat.append(category)
+@bot.message_handler(commands=['commands'])
+def all_commands(message):
+    bot.send_message(message.chat.id, '/start - стартовая команда для того, чтобы начать со мной диалог. '
+                                      'Повторно запускать не нужно\n'
+                                      '/help - если не понятно как я работаю и вообще зачем я нужен, '
+                                      'воспользуйся этой командой\n'
+                                      '/set_limit - с помощью этой команды ты можешь установить суточный лимит. '
+                                      'Это величина, которую не должна будет превышать сумма твоих трат за день\n'
+                                      '/get_limit - эта команда позволяет узнать величину твоего суточного лимита\n'
+                                      '/set_outcome - добавить категории трат (бензин, продукты и т.д.)\n'
+                                      'Если их несколько, перечисли их через запятую\n'
+                                      '/set_income - добавить категории доходов (зарплата, репетиторство и т.д.)\n'
+                                      'Если их несколько, перечисли их через запятую\n'
+                                      '/my_categories - эта команда выведет список твоих категорий трат и доходов')
 
-        length = len(added_cat)
-        if len(categories) == 1 and length == 1:
-            r_msg = 'Добавил'
-        elif length == 1:
-            r_msg = f'Новая категория <strong>{added_cat[0]}</strong> добавлена'
-        elif length > 1:
-            r_msg = f'Новые категории <strong>{", ".join(added_cat)}</strong> добавлены'
-        else:
-            r_msg = f'Уже есть'
-        bot.send_message(message.chat.id, r_msg, parse_mode='HTML')
 
+@bot.message_handler(commands=['get_limit'])
+def get_limit_main(message):
+    """
+    Ф-ция по ID пользователя находит в DB в таблице limits значение последнего внесенного суточного лимита.
+    Суточный лимит это величина, которую не дожна будет превышать сумма трат пользователя.
+    Значений суточных лимитов для одного пользователя может быть несколько, но не больше одного на конкретную дату.
+    :param message: обьект message
+    :return: отправляет сообщение пользователю с величиной его суточного лимита
+    """
+    lim = get_limit(message.chat.id)
+    if lim is not None:
+        bot.send_message(message.chat.id, f'Твой суточный лимит: *{str(lim)}*', parse_mode='MarkdownV2')
     else:
+        bot.send_message(message.chat.id, 'Суточный лимит еще не установлен\n'
+                                          'Будем устанавливать?',
+                         reply_markup=y_n_keyboard('set_limit'))
+
+
+@bot.message_handler(commands=['set_limit'])
+def set_limit_ini(message):
+    bot.send_message(message.chat.id, 'Введи сумму')
+    set_state(4, message.chat.id)
+
+
+@bot.message_handler(func=lambda msg: get_state(msg.chat.id) == 4, content_types=['text'])
+def set_limit(message):
+    try:
+        value = int(message.text.strip())
+        if value < 0:
+            raise NegativeLimit
+        set_limit_db(message.from_user.id, value)
+        bot.send_message(message.chat.id, answers('Yes'))
+        set_state(0, message.from_user.id)
+    except ValueError:
+        bot.send_message(message.chat.id, 'Используй только цифры\n'
+                                          'Попробуй еще раз')
+    except NegativeLimit:
+        bot.send_message(message.chat.id, 'Значение не должно быть отрицательным\n'
+                                          'Попробуй еще раз')
+
+
+@bot.message_handler(commands=['set_outcome'])
+def set_outcome_ini(message):
+    bot.send_message(message.chat.id, 'Введи категории трат, которые ты хочешь добавить')
+    set_state(1, message.chat.id)
+
+
+@bot.message_handler(commands=['set_income'])
+def set_income_ini(message):
+    bot.send_message(message.chat.id, 'Введи категории доходов, которые ты хочешь добавить')
+    set_state(2, message.chat.id)
+
+
+# В проверке состояния пользователя:
+# 1 - это трата
+# 2 - это доход (зарплата к примеру)
+@bot.message_handler(func=lambda msg: get_state(msg.chat.id) in (1, 2), content_types=['text'])
+def add_categories(message):
+    txt = message.text.strip().lower()
+
+    # Проверяем, что в перечисленных тратах присутствуют только пробелы, цифры, буквы, символы '+' или '-'
+    # и они разделены запятыми если их указано несколько
+    if not re.fullmatch(r'[а-яёa-z0-9 -+]+(?:[,][а-яёa-z0-9 -+]+)*', txt):
         bot.send_message(message.chat.id, 'Не понимаю\nУкажи категории через запятую\nМожно использовать только '
                                           'буквы, цифры и символы - или +')
-
-
-@bot.message_handler(func=lambda msg: test_msg(msg) == 2, content_types=['text'])
-def return_cat(message):
-    my_cat = [cat[0] for cat in get_my_cat(message.from_user.id)]
-    if len(my_cat) == 0:
-        bot.send_message(message.chat.id, 'Категории не добавлены')
     else:
-        cat_s = '\n'.join(my_cat)
-        bot.send_message(message.chat.id, f"<u>Твои категории</u>:\n{cat_s}", parse_mode='HTML')
+        cats = [c.strip() for c in txt.split(',')]
+        if get_state(message.chat.id) == 1:
+            cat_type = 'out'
+        else:
+            cat_type = 'in'
+
+        for cat in cats:
+            if not check_category(cat, message.chat.id):
+                add_cat_into_db(message.from_user.id, cat, cat_type)
+
+        # Все, мы добавили новые категории если они отсутствовали
+        # поэтому выводим сообщение об успешно выполненой команде
+        # сбрасываем состояние пользователя на 0
+        bot.send_message(message.chat.id, answers('Yes'))
+        set_state(0, message.chat.id)
 
 
-@bot.message_handler(func=lambda msg: test_msg(msg) == 3, content_types=['text'])
+@bot.message_handler(commands=['my_categories'])
+def get_my_cat(message):
+    """
+    Функция возвращает список категорий пользователя (трат и доходов) если были добавлены
+    В противном случает сообщает пользователю что категории еще не добавлены и предлагает добавить
+    с помощью команд /set_outcome и /set_income
+    :param message: обьект message
+    :return: сообщение пользователю со списком категорий если они были добавлены
+    """
+    cats = defaultdict(str)
+    for cat, cat_type in get_my_cat_db(message.from_user.id):
+        cats[cat_type] += f'{cat}\n'
+
+    # Отправляем категории пользователю
+    r_msg = ''
+    if cats == {}:
+        r_msg = 'Ничего не нашел, видимо мы с тобой еще ничего не добавляли\n' \
+                'Это можно сделать с помощью команд /set\_outcome и /set\_income'
+    else:
+        for k in cats.keys():
+            if k == 'out':
+                r_msg += f'*Твои категории трат:*\n{cats["out"]}'
+            else:
+                r_msg += f'*Твои категории доходов:\n*{cats["in"]}'
+    bot.send_message(message.chat.id, r_msg, parse_mode='Markdown')
+
+
+@bot.message_handler(func=lambda msg: test_msg(msg) == 1 and get_state(msg.from_user.id) == 0, content_types=['text'])
 def collect_exp(message):
-    if not check_user(message.from_user.id):
-        collect_user(message.from_user)
     try:
-        cat, amount, d = msg_parser(message.text)
-        collect_msg_into_db(message.from_user.id, message.text)
-        if not check_category(cat, message.from_user.id):
+        cat, c_type, amount, d = msg_parser(message.text)
+        collect_msg_into_db(message.from_user.id, message.text)  # записываем текст сообщения в базу данных
 
-            bot.send_message(message.chat.id, f"Категорию <strong>{cat}</strong> для тебя я еще не добавлял\n"
-                                              "Добавить новую категорию и трату?", parse_mode='HTML',
-                             reply_markup=y_n_keyboard(f'add|{cat}|{int(amount)}|{d}'))
+        if not check_category(cat, message.chat.id):
+            bot.send_message(message.chat.id, f"Категорию {'трат' if c_type == 'out' else 'доходов'} *{cat}* "
+                                              f"для тебя я еще не добавлял\n"
+                                              "Добавить новую категорию?", parse_mode='Markdown',
+                             reply_markup=y_n_keyboard(f'add|{cat}|{c_type}|{int(amount)}|{d}'))
         else:
             add_exp_into_db(message.from_user.id, cat, str(amount), d)
-            bot.send_message(message.chat.id, 'Записал')
-
+            record_confirm(message.chat.id)
     except WrongAmount:
         bot.send_message(message.chat.id, 'Ошибка, неправильно указана сумма')
     except ValueError:
@@ -107,7 +198,7 @@ def collect_exp(message):
         bot.send_message(message.chat.id, 'Ошибка, указанная дата больше текущей')
 
 
-@bot.message_handler(func=lambda msg: test_msg(msg) == 0)
+@bot.message_handler(func=lambda msg: test_msg(msg) is None)
 def some_text(message):
     bot.send_message(message.chat.id, 'Я не понимаю\nПопробуй воспользоваться /help')
 
@@ -117,9 +208,15 @@ def callback_inline(call):
     if call.message:
         var = call.data.split('|')
         if var[0] == 'add':
-            add_cat_into_db(call.message.chat.id, var[1])  # добавляем новую категорию в базу
-            add_exp_into_db(call.message.chat.id, var[1], str(var[2]), var[3])
-            bot.send_message(chat_id=call.message.chat.id, text=answers('Yes'))
+            # var[1] - категория
+            # var[2] - тип (in или out)
+            # var[3] - сумма
+            # var[4] - дата
+            add_cat_into_db(call.message.chat.id, var[1], var[2])  # добавляем новую категорию в базу
+            add_exp_into_db(call.message.chat.id, var[1], var[3], var[4])
+            record_confirm(msg_id=call.message.chat.id)
+        elif var[0] == 'set_limit':
+            set_limit_ini(call.message)
         elif call.data == 'cb_button_no':
             bot.send_message(chat_id=call.message.chat.id, text=answers('No'))
         bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
@@ -150,6 +247,31 @@ def y_n_keyboard(clb_data: str):
     ]
 
     return markup.add(*keyboard)
+
+
+def main_keyboard():
+    main_markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    main_markup.add('/help', '/commands')
+    main_markup.add('/set_limit', '/get_limit')
+    main_markup.add('/set_income', '/set_outcome')
+    main_markup.add('/my_categories')
+    return main_markup
+
+
+def record_confirm(msg_id):
+    lim = get_limit(msg_id)
+    spent = spent_daily(msg_id)
+
+    if lim is not None:
+        value = lim - spent
+        if value < 0:
+            bot.send_message(msg_id, f'{answers("Yes")}\n'
+                                     f'Суточный лимит превышен на\n*{-value}* руб.', parse_mode='Markdown')
+        else:
+            bot.send_message(msg_id, f'{answers("Yes")}\n'
+                                     f'Осталось на сегодня\n*{value}* руб.', parse_mode='Markdown')
+    else:
+        bot.send_message(msg_id, f'{answers("Yes")}\n')
 
 
 if __name__ == '__main__':

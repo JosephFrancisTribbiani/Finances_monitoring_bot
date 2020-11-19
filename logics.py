@@ -2,14 +2,19 @@ import re
 from datetime import datetime
 from exceptions import *
 from random import randint
+from db import get_state
 
 
 def msg_parser(msg: str):
-    p_msg = re.match(r'(?:([\d/]+)\s+)?'
-                     r'((?:\d+[.,])?\d+)\s+(.+)', msg[::-1].strip())
+    p_msg = re.match(r'(?:([\d/]+)\s+)?'        # group(1) - дата
+                     r'((?:\d*[.,])?\d+)\s*'    # group(2) - сумма
+                     r'([+-])?\s+'              # group(3) - знак
+                     r'(.+)',                   # group(4) - категория
+                     msg[::-1].strip())
 
-    category = p_msg.group(3)[::-1].lower()
+    category = p_msg.group(4)[::-1].lower()
     amount = p_msg.group(2)[::-1].replace(',', '.')
+
     if re.search(r'(?:(?<=\.)\d{1,2}\Z)|(^\d+\Z)', amount) is None:
         raise WrongAmount
     if '.' in amount:
@@ -33,20 +38,19 @@ def msg_parser(msg: str):
         if d > datetime.today():
             raise WrongDate
 
-    return category, amount, d.strftime('%Y-%m-%d')
+    if p_msg.group(3) is None or p_msg.group(3) == '-':
+        c_type = 'out'
+    else:
+        c_type = 'in'
+
+    return category, c_type, amount, d.strftime('%Y-%m-%d')
 
 
 def test_msg(msg):
-    msg_type = 0
-    t = msg.text.lower().strip()
-    if bool(re.search(r'^добавь категори[ию] .*', t)):
-        msg_type = 1
-    elif bool(re.search(r'^(?:(?:выведи )?мои категории)|(?:/my_categories)', t)):
-        msg_type = 2
-    elif bool(re.search(r'.+\s+\d+(?:[.,]\d*)?'
-                        r'(?:(?:\s+\d+)|(?:\s+\d+(?:/\d+){1,2}))?$', t)):
-        msg_type = 3
-    return msg_type
+    txt = msg.text.strip().lower()
+    if re.search(r'.+\s+[-+]?\s*\d+(?:[.,]\d*)?'
+                 r'(?:(?:\s+\d+)|(?:\s+\d+(?:/\d+){1,2}))?$', txt):
+        return 1
 
 
 def answers(t: str) -> str:

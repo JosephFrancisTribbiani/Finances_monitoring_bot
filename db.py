@@ -10,7 +10,6 @@ def get_connection(func):
     :param func: функция, которой требуется подключиться к базе
     :return:
     """
-
     @wraps(func)
     def inner(*args, **kwargs):
         with psycopg2.connect(DATABASE_URL) as conn, conn.cursor() as cur:
@@ -30,7 +29,7 @@ def init_db(conn, cur, force: bool = False):
     """
 
     if force:
-        cur.execute('DROP TABLE IF EXISTS users, messages, expenses, u_expenses;')
+        cur.execute('DROP TABLE IF EXISTS users, limits, messages, u_inout, inout;')
 
     cur.execute('''CREATE TABLE IF NOT EXISTS users (
                 u_id INTEGER PRIMARY KEY,
@@ -38,23 +37,32 @@ def init_db(conn, cur, force: bool = False):
                 l_name TEXT,
                 n_name TEXT,
                 l_code TEXT,
-                date DATE NOT NULL);
+                date DATE NOT NULL,
+                u_state INTEGER);
                 ''')
+    cur.execute('''CREATE TABLE IF NOT EXISTS limits (
+                l_id SERIAL PRIMARY KEY,
+                u_id INTEGER NOT NULL REFERENCES users (u_id),
+                date DATE NOT NULL,
+                value NUMERIC NOT NULL);
+                ''')
+
     cur.execute('''CREATE TABLE IF NOT EXISTS messages (
                 m_id SERIAL PRIMARY KEY,
                 u_id INTEGER NOT NULL REFERENCES users (u_id),
                 date DATE NOT NULL,
                 message TEXT NOT NULL);
                 ''')
-    cur.execute('''CREATE TABLE IF NOT EXISTS u_expenses (
-                exp_id SERIAL PRIMARY KEY,
+    cur.execute('''CREATE TABLE IF NOT EXISTS u_inout (
+                io_id SERIAL PRIMARY KEY,
                 u_id INTEGER REFERENCES users (u_id),
-                exp_name TEXT,
-                UNIQUE (u_id, exp_name));
+                description TEXT,
+                type TEXT CHECK (type IN ('in', 'out')),
+                UNIQUE (u_id, description));
                 ''')
-    cur.execute('''CREATE TABLE IF NOT EXISTS expenses (
+    cur.execute('''CREATE TABLE IF NOT EXISTS inout (
                 id SERIAL PRIMARY KEY,
-                exp_id INTEGER NOT NULL REFERENCES u_expenses (exp_id),
+                io_id INTEGER NOT NULL REFERENCES u_inout (io_id),
                 value NUMERIC NOT NULL,
                 date DATE NOT NULL);
                 ''')
@@ -70,10 +78,10 @@ def collect_user(usr, conn, cur):
     :param cur:
     :return: nothing
     """
-    cur.execute('''INSERT INTO users (u_id, f_name, l_name, n_name, l_code, date)
-                VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
+    cur.execute('''INSERT INTO users (u_id, f_name, l_name, n_name, l_code, date, u_state)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
                 ''', (usr.id, usr.first_name, usr.last_name, usr.username, usr.language_code,
-                      datetime.today().strftime('%Y-%m-%d')))
+                      datetime.today().strftime('%Y-%m-%d'), 0))
     conn.commit()
 
 
@@ -96,22 +104,22 @@ def collect_msg_into_db(u_id: str, msg: str, conn, cur):
 @get_connection
 def check_category(cat: str, u_id: str, conn, cur):
     """
-    Функция проверяет новую ли категорию указал пользователь, или она уже присутствует в таблице u_expenses
+    Функция проверяет новую ли категорию указал пользователь, или она уже присутствует в таблице u_inout
     :param cat: название категории (все буквы маленькие)
     :param u_id: id пользователя
     :param cur:
     :return: True или False
     """
-    cur.execute('''SELECT EXISTS (SELECT 1 FROM u_expenses WHERE u_id=%s AND exp_name=%s);
+    cur.execute('''SELECT EXISTS (SELECT 1 FROM u_inout WHERE u_id=%s AND description=%s);
                 ''', (u_id, cat))
     return cur.fetchone()[0]
 
 
 @get_connection
-def add_cat_into_db(u_id, category, conn, cur):
-    cur.execute('''INSERT INTO u_expenses (u_id, exp_name)
-                    VALUES (%s, %s);
-                    ''', (u_id, category))
+def add_cat_into_db(*args, conn, cur):
+    cur.execute('''INSERT INTO u_inout (u_id, description, type)
+                    VALUES (%s, %s, %s);
+                    ''', args)
     conn.commit()
 
 
@@ -130,8 +138,8 @@ def check_user(u_id: str, conn, cur) -> bool:
 
 
 @get_connection
-def get_my_cat(u_id: str, conn, cur) -> list:
-    cur.execute('''SELECT exp_name FROM u_expenses WHERE u_id=%s;
+def get_my_cat_db(u_id: str, conn, cur) -> list:
+    cur.execute('''SELECT description, type FROM u_inout WHERE u_id=%s;
                 ''', (u_id,))
     return cur.fetchall()
 
@@ -139,7 +147,78 @@ def get_my_cat(u_id: str, conn, cur) -> list:
 @get_connection
 def add_exp_into_db(*args, conn, cur):
     cur.execute('''
-    INSERT INTO expenses (exp_id, value, date)
-    VALUES ((SELECT exp_id FROM u_expenses WHERE u_id = %s AND exp_name = %s), %s, %s);
+    INSERT INTO inout (io_id, value, date)
+    VALUES ((SELECT io_id FROM u_inout WHERE u_id = %s AND description = %s), %s, %s);
     ''', args)  # args -> u_id, category, amount, date
     conn.commit()
+
+
+@get_connection
+def get_limit(u_id, conn, cur):
+    cur.execute('''
+    SELECT value FROM LIMITS
+    WHERE u_id = %s
+    ORDER BY date
+    DESC LIMIT 1;
+    ''', (u_id, ))
+    res = cur.fetchone()
+    if res is not None:
+        return res[0]
+
+
+@get_connection
+def set_state(*args, conn, cur):
+    cur.execute('''
+    UPDATE users
+    SET u_state = %s
+    WHERE u_id = %s;
+    ''', args)
+    conn.commit()
+
+
+@get_connection
+def get_state(u_id, conn, cur):
+    cur.execute('''
+    SELECT u_state FROM users
+    WHERE u_id = %s;
+    ''', (u_id, ))
+    return cur.fetchone()[0]
+
+
+@get_connection
+def set_limit_db(*args, conn, cur):
+    u_id, value = args
+    td = datetime.today().strftime('%Y-%m-%d')
+    cur.execute('''
+    SELECT EXISTS (SELECT 1 FROM limits WHERE u_id = %s AND date = %s);
+    ''', (u_id, td))
+
+    if not cur.fetchone()[0]:
+        cur.execute('''
+        INSERT INTO limits (u_id, date, value)
+        VALUES (%s, %s, %s);
+        ''', (u_id, td, value))
+    else:
+        cur.execute('''
+        UPDATE limits
+        SET value = %s
+        WHERE date = %s;
+        ''', (value, td))
+    conn.commit()
+
+
+@get_connection
+def spent_daily(u_id, conn, cur, c_type='out',
+                d_from=datetime.today().strftime('%Y-%m-%d'),
+                d_to=datetime.today().strftime('%Y-%m-%d')):
+    cur.execute('''
+    SELECT sum(t2.value)
+    FROM u_inout AS t1
+    INNER JOIN inout AS t2
+    ON t1.io_id = t2.io_id
+    WHERE t1.u_id = %s AND t1.type = %s
+    AND t2.date BETWEEN %s AND %s
+    GROUP BY t1.u_id;
+    ''', (u_id, c_type, d_from, d_to))
+
+    return cur.fetchone()[0]

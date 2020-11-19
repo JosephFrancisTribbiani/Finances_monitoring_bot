@@ -2,3 +2,6 @@
 __pycache__/*
 .env
 probuem.py
+tests2.py
+/backup/*
+*.xlsx
