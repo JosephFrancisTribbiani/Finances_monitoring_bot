@@ -26,7 +26,8 @@ def start(message):
     else:
         bot.send_message(message.chat.id, 'Мы с тобой уже знакомы ' + u'\U0001F609' + '\n'
                                                                                       'Если что-то непонятно, '
-                                                                                      'воспользуйся\n/help')
+                                                                                      'воспользуйся\n/help',
+                         reply_markup=main_keyboard())
 
 
 @bot.message_handler(commands=['help'])
