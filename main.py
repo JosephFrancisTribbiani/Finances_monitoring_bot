@@ -1,7 +1,7 @@
 from config import TOKEN
 from db import init_db, collect_user, collect_msg_into_db, add_cat_into_db, check_user, check_category
 from db import get_my_cat_db, add_exp_into_db, get_limit, set_state, set_limit_db, get_state
-from db import spent_daily
+from db import spent_daily, main_stat_db
 from logics import msg_parser, test_msg, answers
 from exceptions import *
 from _collections import defaultdict
@@ -67,6 +67,15 @@ def all_commands(message):
                                       '/my_categories - эта команда выведет список твоих категорий трат и доходов')
 
 
+@bot.message_handler(commands=['stop'])
+def all_commands(message):
+    set_state(0, message.chat.id)
+    if get_state(message.chat.id) == 0:
+        bot.send_message(message.chat.id, answers('YES'))
+    else:
+        bot.send_message(message.chat.id, 'Ошибка, попробуй еще раз')
+
+
 @bot.message_handler(commands=['get_limit'])
 def get_limit_main(message):
     """
@@ -120,36 +129,6 @@ def set_income_ini(message):
     set_state(2, message.chat.id)
 
 
-# В проверке состояния пользователя:
-# 1 - это трата
-# 2 - это доход (зарплата к примеру)
-@bot.message_handler(func=lambda msg: get_state(msg.chat.id) in (1, 2), content_types=['text'])
-def add_categories(message):
-    txt = message.text.strip().lower()
-
-    # Проверяем, что в перечисленных тратах присутствуют только пробелы, цифры, буквы, символы '+' или '-'
-    # и они разделены запятыми если их указано несколько
-    if not re.fullmatch(r'[а-яёa-z0-9 -+]+(?:[,][а-яёa-z0-9 -+]+)*', txt):
-        bot.send_message(message.chat.id, 'Не понимаю\nУкажи категории через запятую\nМожно использовать только '
-                                          'буквы, цифры и символы - или +')
-    else:
-        cats = [c.strip() for c in txt.split(',')]
-        if get_state(message.chat.id) == 1:
-            cat_type = 'out'
-        else:
-            cat_type = 'in'
-
-        for cat in cats:
-            if not check_category(cat, message.chat.id):
-                add_cat_into_db(message.from_user.id, cat, cat_type)
-
-        # Все, мы добавили новые категории если они отсутствовали
-        # поэтому выводим сообщение об успешно выполненой команде
-        # сбрасываем состояние пользователя на 0
-        bot.send_message(message.chat.id, answers('Yes'))
-        set_state(0, message.chat.id)
-
-
 @bot.message_handler(commands=['my_categories'])
 def get_my_cat(message):
     """
@@ -175,6 +154,42 @@ def get_my_cat(message):
             else:
                 r_msg += f'*Твои категории доходов:\n*{cats["in"]}'
     bot.send_message(message.chat.id, r_msg, parse_mode='Markdown')
+
+
+# В проверке состояния пользователя:
+# 1 - это трата
+# 2 - это доход (зарплата к примеру)
+@bot.message_handler(func=lambda msg: get_state(msg.chat.id) in (1, 2), content_types=['text'])
+def add_categories(message):
+    txt = message.text.strip().lower()
+
+    # Проверяем, что в перечисленных тратах присутствуют только пробелы, цифры, буквы, символы '+' или '-'
+    # и они разделены запятыми если их указано несколько
+    if not re.fullmatch(r'[а-яёa-z0-9 -+]+(?:[,][а-яёa-z0-9 -+]+)*', txt):
+        bot.send_message(message.chat.id, 'Не понимаю\nУкажи категории через запятую\nМожно использовать только '
+                                          'буквы, цифры и символы *"-"* или *"+"*', parse_mode="Markdown")
+    else:
+        cats = [c.strip() for c in txt.split(',')]
+        if get_state(message.chat.id) == 1:
+            cat_type = 'out'
+        else:
+            cat_type = 'in'
+
+        for cat in cats:
+            if not check_category(cat, message.chat.id):
+                add_cat_into_db(message.from_user.id, cat, cat_type)
+
+        # Все, мы добавили новые категории если они отсутствовали
+        # поэтому выводим сообщение об успешно выполненой команде
+        # сбрасываем состояние пользователя на 0
+        bot.send_message(message.chat.id, answers('Yes'))
+        set_state(0, message.chat.id)
+
+
+@bot.message_handler(commands=['get_stat'])
+def get_stat(message):
+    df = main_stat_db(u_id=message.chat.id, d_from='2020-11-18', d_to='2020-11-18')
+    print(df)
 
 
 @bot.message_handler(func=lambda msg: test_msg(msg) == 1 and get_state(msg.from_user.id) == 0, content_types=['text'])
@@ -256,6 +271,7 @@ def main_keyboard():
     main_markup.add('/set_limit', '/get_limit')
     main_markup.add('/set_income', '/set_outcome')
     main_markup.add('/my_categories')
+    # main_markup.add('/get_stat')
     return main_markup
 
 

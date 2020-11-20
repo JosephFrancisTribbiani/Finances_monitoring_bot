@@ -10,11 +10,13 @@ def get_connection(func):
     :param func: функция, которой требуется подключиться к базе
     :return:
     """
+
     @wraps(func)
     def inner(*args, **kwargs):
         with psycopg2.connect(DATABASE_URL) as conn, conn.cursor() as cur:
             res = func(*args, conn=conn, cur=cur, **kwargs)
         return res
+
     return inner
 
 
@@ -160,7 +162,7 @@ def get_limit(u_id, conn, cur):
     WHERE u_id = %s
     ORDER BY date
     DESC LIMIT 1;
-    ''', (u_id, ))
+    ''', (u_id,))
     res = cur.fetchone()
     if res is not None:
         return res[0]
@@ -181,7 +183,7 @@ def get_state(u_id, conn, cur):
     cur.execute('''
     SELECT u_state FROM users
     WHERE u_id = %s;
-    ''', (u_id, ))
+    ''', (u_id,))
     return cur.fetchone()[0]
 
 
@@ -222,3 +224,20 @@ def spent_daily(u_id, conn, cur, c_type='out',
     ''', (u_id, c_type, d_from, d_to))
 
     return cur.fetchone()[0]
+
+
+@get_connection
+def main_stat_db(u_id, conn, cur,
+                 d_from=datetime.today().strftime('%Y-%m-%d'),
+                 d_to=datetime.today().strftime('%Y-%m-%d')):
+    cur.execute('''
+    SELECT t1.description, t1.type, sum(t2.value)
+    FROM u_inout AS t1
+    INNER JOIN inout AS t2
+    ON t1.io_id = t2.io_id
+    WHERE t1.u_id = %s
+    AND t2.date BETWEEN %s AND %s
+    GROUP BY t1.description, t1.type;
+    ''', (u_id, d_from, d_to))
+
+    return cur.fetchall()
