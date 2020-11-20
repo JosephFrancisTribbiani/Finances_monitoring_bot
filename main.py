@@ -267,7 +267,7 @@ def y_n_keyboard(clb_data: str):
 
 def main_keyboard():
     main_markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    main_markup.add('/help', '/commands')
+    main_markup.add('/help', '/commands', '/stop')
     main_markup.add('/set_limit', '/get_limit')
     main_markup.add('/set_income', '/set_outcome')
     main_markup.add('/my_categories')
