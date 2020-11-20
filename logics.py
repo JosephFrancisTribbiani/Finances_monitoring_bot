@@ -2,10 +2,24 @@ import re
 from datetime import datetime
 from exceptions import *
 from random import randint
-from db import get_state
 
 
 def msg_parser(msg: str):
+    """
+    Функция принимает на вход сообщение от пользователя в формате (текст сообщения -> str)
+
+    [Название категории] [опц: +-] [Сумма] [опц: Дата]
+
+    и извлекает из него необходимые данные:
+
+    - Название категрии -> str
+
+    - Тип категории -> 'in' (если '+') - доход, или 'out' (если '-' или ничего не указано) - расход
+
+    - Сумма -> int или float
+
+    - Дата в формате '%Y-%m-%d' -> str
+    """
     p_msg = re.match(r'(?:([\d/]+)\s+)?'        # group(1) - дата
                      r'((?:\d*[.,])?\d+)\s*'    # group(2) - сумма
                      r'([+-])?\s+'              # group(3) - знак

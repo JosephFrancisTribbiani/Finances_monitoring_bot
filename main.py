@@ -197,6 +197,14 @@ def add_categories(message):
 
 @bot.message_handler(func=lambda msg: test_msg(msg) == 1 and get_state(msg.from_user.id) == 0, content_types=['text'])
 def collect_exp(message):
+    """
+    Фунция записывает трату/доход в базу
+
+    На вход принимает обьект message и передает текст сообщения (str) ф-ции msg_parser
+
+    msg_parser парсит сообщение и возвращает данные которые необходимо занести в базу - категорию, ее тип (in/out),
+    сумму и дату.
+    """
     try:
         cat, c_type, amount, d = msg_parser(message.text)
         collect_msg_into_db(message.from_user.id, message.text)  # записываем текст сообщения в базу данных
@@ -205,9 +213,9 @@ def collect_exp(message):
             bot.send_message(message.chat.id, f"Категорию {'трат' if c_type == 'out' else 'доходов'} *{cat}* "
                                               f"для тебя я еще не добавлял\n"
                                               "Добавить новую категорию?", parse_mode='Markdown',
-                             reply_markup=y_n_keyboard(f'add|{cat}|{c_type}|{int(amount)}|{d}'))
+                             reply_markup=y_n_keyboard(f'add|{cat}|{c_type}|{amount}|{d}'))
         else:
-            add_exp_into_db(message.from_user.id, cat, str(amount), d)
+            add_exp_into_db(message.from_user.id, cat, amount, d)
             record_confirm(message.chat.id)
     except WrongAmount:
         bot.send_message(message.chat.id, 'Ошибка, неправильно указана сумма')
