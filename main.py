@@ -76,59 +76,6 @@ def drop_state(message):
         bot.send_message(message.chat.id, 'Ошибка, попробуй еще раз')
 
 
-@bot.message_handler(commands=['get_limit'])
-def get_limit_main(message):
-    """
-    Ф-ция по ID пользователя находит в DB в таблице limits значение последнего внесенного суточного лимита.
-    Суточный лимит это величина, которую не дожна будет превышать сумма трат пользователя.
-    Значений суточных лимитов для одного пользователя может быть несколько, но не больше одного на конкретную дату.
-    :param message: обьект message
-    :return: отправляет сообщение пользователю с величиной его суточного лимита
-    """
-    lim = get_limit(message.chat.id)
-    if lim is not None:
-        bot.send_message(message.chat.id, f'Твой суточный лимит: *{str(lim)}*', parse_mode='MarkdownV2')
-    else:
-        bot.send_message(message.chat.id, 'Суточный лимит еще не установлен\n'
-                                          'Будем устанавливать?',
-                         reply_markup=y_n_keyboard('set_limit'))
-
-
-@bot.message_handler(commands=['set_limit'])
-def set_limit_ini(message):
-    bot.send_message(message.chat.id, 'Введи сумму')
-    set_state(4, message.chat.id)
-
-
-@bot.message_handler(func=lambda msg: get_state(msg.chat.id) == 4, content_types=['text'])
-def set_limit(message):
-    try:
-        value = int(message.text.strip())
-        if value < 0:
-            raise NegativeLimit
-        set_limit_db(message.from_user.id, value)
-        bot.send_message(message.chat.id, answers('Yes'))
-        set_state(0, message.from_user.id)
-    except ValueError:
-        bot.send_message(message.chat.id, 'Используй только цифры\n'
-                                          'Попробуй еще раз')
-    except NegativeLimit:
-        bot.send_message(message.chat.id, 'Значение не должно быть отрицательным\n'
-                                          'Попробуй еще раз')
-
-
-@bot.message_handler(commands=['set_outcome'])
-def set_outcome_ini(message):
-    bot.send_message(message.chat.id, 'Введи категории трат, которые ты хочешь добавить')
-    set_state(1, message.chat.id)
-
-
-@bot.message_handler(commands=['set_income'])
-def set_income_ini(message):
-    bot.send_message(message.chat.id, 'Введи категории доходов, которые ты хочешь добавить')
-    set_state(2, message.chat.id)
-
-
 @bot.message_handler(commands=['my_categories'])
 def get_my_cat(message):
     """
@@ -154,6 +101,68 @@ def get_my_cat(message):
             else:
                 r_msg += f'*Твои категории доходов:\n*{cats["in"]}'
     bot.send_message(message.chat.id, r_msg, parse_mode='Markdown')
+
+
+@bot.message_handler(commands=['get_limit'])
+def get_limit_main(message):
+    """
+    Ф-ция по ID пользователя находит в DB в таблице limits значение последнего внесенного суточного лимита.
+    Суточный лимит это величина, которую не дожна будет превышать сумма трат пользователя.
+    Значений суточных лимитов для одного пользователя может быть несколько, но не больше одного на конкретную дату.
+    :param message: обьект message
+    :return: отправляет сообщение пользователю с величиной его суточного лимита
+    """
+    lim = get_limit(message.chat.id)
+    if lim is not None:
+        bot.send_message(message.chat.id, f'Твой суточный лимит: *{str(lim)}* руб.', parse_mode='Markdown')
+    else:
+        bot.send_message(message.chat.id, 'Суточный лимит еще не установлен\n'
+                                          'Будем устанавливать?',
+                         reply_markup=y_n_keyboard('set_limit'))
+
+
+@bot.message_handler(commands=['get_stat'])
+def get_stat(message):
+    df = main_stat_db(u_id=message.chat.id, d_from='2020-11-18', d_to='2020-11-18')
+    print(df)
+
+
+@bot.message_handler(commands=['set_limit'])
+def set_limit_ini(message):
+    bot.send_message(message.chat.id, 'Введи сумму')
+    set_state(4, message.chat.id)
+
+
+@bot.message_handler(func=lambda msg: get_state(msg.chat.id) == 4, content_types=['text'])
+def set_limit(message):
+    try:
+        value = int(message.text.strip())
+        if value < 0:
+            raise NegativeLimit
+        set_limit_db(message.from_user.id, value)
+        bot.send_message(message.chat.id, f'{answers("Yes")}\nСуточный лимит в размере *{value}* руб. установлен',
+                         parse_mode='Markdown')
+        set_state(0, message.from_user.id)
+    except ValueError:
+        bot.send_message(message.chat.id, 'Суточный лимит не установлен\n'
+                                          'Используй только цифры\n'
+                                          'Попробуй еще раз')
+    except NegativeLimit:
+        bot.send_message(message.chat.id, 'Суточный лимит не установлен\n'
+                                          'Значение не должно быть отрицательным\n'
+                                          'Попробуй еще раз')
+
+
+@bot.message_handler(commands=['set_outcome'])
+def set_outcome_ini(message):
+    bot.send_message(message.chat.id, 'Введи категории трат, которые ты хочешь добавить')
+    set_state(1, message.chat.id)
+
+
+@bot.message_handler(commands=['set_income'])
+def set_income_ini(message):
+    bot.send_message(message.chat.id, 'Введи категории доходов, которые ты хочешь добавить')
+    set_state(2, message.chat.id)
 
 
 # В проверке состояния пользователя:
@@ -182,14 +191,8 @@ def add_categories(message):
         # Все, мы добавили новые категории если они отсутствовали
         # поэтому выводим сообщение об успешно выполненой команде
         # сбрасываем состояние пользователя на 0
-        bot.send_message(message.chat.id, answers('Yes'))
         set_state(0, message.chat.id)
-
-
-@bot.message_handler(commands=['get_stat'])
-def get_stat(message):
-    df = main_stat_db(u_id=message.chat.id, d_from='2020-11-18', d_to='2020-11-18')
-    print(df)
+        bot.send_message(message.chat.id, f"{answers('Yes')}\nНовые категории добавлены")
 
 
 @bot.message_handler(func=lambda msg: test_msg(msg) == 1 and get_state(msg.from_user.id) == 0, content_types=['text'])
