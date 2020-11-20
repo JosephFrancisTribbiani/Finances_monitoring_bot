@@ -68,10 +68,10 @@ def all_commands(message):
 
 
 @bot.message_handler(commands=['stop'])
-def all_commands(message):
+def drop_state(message):
     set_state(0, message.chat.id)
     if get_state(message.chat.id) == 0:
-        bot.send_message(message.chat.id, answers('YES'))
+        bot.send_message(message.chat.id, answers('Yes'))
     else:
         bot.send_message(message.chat.id, 'Ошибка, попробуй еще раз')
 
