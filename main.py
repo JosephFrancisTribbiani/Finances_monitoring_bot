@@ -1,12 +1,14 @@
 from config import TOKEN
 from db import init_db, collect_user, collect_msg_into_db, add_cat_into_db, check_user, check_category
 from db import get_my_cat_db, add_exp_into_db, get_limit, set_state, set_limit_db, get_state
-from db import spent_daily, main_stat_db
+from db import spent_daily
 from logics import msg_parser, test_msg, answers
+from statistic import pie_plot_creation
+from keyboards import *
 from exceptions import *
 from _collections import defaultdict
+from datetime import date, timedelta
 import telebot
-from telebot import types
 import re
 
 bot = telebot.TeleBot(token=TOKEN)
@@ -64,7 +66,9 @@ def all_commands(message):
                                       'Если их несколько, перечисли их через запятую\n'
                                       '/set_income - добавить категории доходов (зарплата, репетиторство и т.д.)\n'
                                       'Если их несколько, перечисли их через запятую\n'
-                                      '/my_categories - эта команда выведет список твоих категорий трат и доходов')
+                                      '/my_categories - эта команда выведет список твоих категорий трат и доходов\n'
+                                      '/stop - команда, сбрасывающая состояние пользователя (например, если '
+                                      'после вызова команды /set_limit, вы передумали изменять свой суточный лимит')
 
 
 @bot.message_handler(commands=['stop'])
@@ -122,9 +126,9 @@ def get_limit_main(message):
 
 
 @bot.message_handler(commands=['get_stat'])
-def get_stat(message):
-    df = main_stat_db(u_id=message.chat.id, d_from='2020-11-18', d_to='2020-11-18')
-    print(df)
+def get_stat_ini(message):
+    bot.send_message(message.chat.id, 'За какой период ты хочешь получить статистику по тратам?',
+                     reply_markup=statistic_kb())
 
 
 @bot.message_handler(commands=['set_limit'])
@@ -246,44 +250,19 @@ def callback_inline(call):
             set_limit_ini(call.message)
         elif call.data == 'cb_button_no':
             bot.send_message(chat_id=call.message.chat.id, text=answers('No'))
+        elif call.data == 'monthly_stat_current':
+            d_from = date.today().replace(day=1).strftime('%Y-%m-%d')
+            d_to = (date.today().replace(day=1, month=date.today().month + 1) - timedelta(days=1)).strftime('%Y-%m-%d')
+            if not pie_plot_creation(u_id=call.message.chat.id, d_from=d_from, d_to=d_to):
+                bot.send_message(call.message.chat.id, 'Данные за указаный период отсутствуют')
+            else:
+                bot.send_photo(call.message.chat.id, photo=open(f"{call.message.chat.id}.jpg", 'rb'))
         bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
 
 
 def main():
     init_db(force=False)
     bot.polling(none_stop=True, interval=0)
-
-
-def y_n_keyboard(clb_data: str):
-    """
-    Функция создает inline клавиатуру с кнопками Да/Нет
-    :return: обьект types.InlineKeyboardMarkup
-    """
-    call_back_button_yes = clb_data
-    call_back_button_no = 'cb_button_no'
-
-    titles = {
-        call_back_button_yes: "Да",
-        call_back_button_no: "Нет"
-    }
-
-    markup = types.InlineKeyboardMarkup()
-    keyboard = [
-        types.InlineKeyboardButton(titles[call_back_button_yes], callback_data=call_back_button_yes),
-        types.InlineKeyboardButton(titles[call_back_button_no], callback_data=call_back_button_no)
-    ]
-
-    return markup.add(*keyboard)
-
-
-def main_keyboard():
-    main_markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    main_markup.add('/help', '/commands', '/stop')
-    main_markup.add('/set_limit', '/get_limit')
-    main_markup.add('/set_income', '/set_outcome')
-    main_markup.add('/my_categories')
-    # main_markup.add('/get_stat')
-    return main_markup
 
 
 def record_confirm(msg_id):

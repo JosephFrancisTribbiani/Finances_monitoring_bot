@@ -1,4 +1,5 @@
 import psycopg2
+import pandas as pd
 from functools import wraps
 from config import DATABASE_URL
 from datetime import datetime
@@ -227,17 +228,6 @@ def spent_daily(u_id, conn, cur, c_type='out',
 
 
 @get_connection
-def main_stat_db(u_id, conn, cur,
-                 d_from=datetime.today().strftime('%Y-%m-%d'),
-                 d_to=datetime.today().strftime('%Y-%m-%d')):
-    cur.execute('''
-    SELECT t1.description, t1.type, sum(t2.value)
-    FROM u_inout AS t1
-    INNER JOIN inout AS t2
-    ON t1.io_id = t2.io_id
-    WHERE t1.u_id = %s
-    AND t2.date BETWEEN %s AND %s
-    GROUP BY t1.description, t1.type;
-    ''', (u_id, d_from, d_to))
-
-    return cur.fetchall()
+def get_user_data(query, params, conn, cur):
+    df = pd.read_sql_query(query, con=conn, params=params, parse_dates=['date'])
+    return df
