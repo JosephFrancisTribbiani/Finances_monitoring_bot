@@ -6,3 +6,4 @@ tests2.py
 /backup/*
 *.xlsx
 *.ipynb*
+*.jpg

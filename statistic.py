@@ -1,9 +1,8 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 from db import get_user_data
 
 
-def pie_plot_creation(u_id, d_from, d_to):
+def pie_plot_creation(u_id, d_from, d_to, title):
     query = """
     SELECT t1.description AS name, sum(t2.value) AS value
     FROM u_inout AS t1
@@ -23,10 +22,14 @@ def pie_plot_creation(u_id, d_from, d_to):
 
     labels = df.name
     sizes = df.value
+    legend = list()
+    for i, value in enumerate(sizes):
+        legend.append(f'{labels[i]}: {value} руб.')
 
     fig1, ax1 = plt.subplots()
     ax1.pie(sizes, labels=labels, startangle=0, wedgeprops=dict(width=0.5))
+    lgd = ax1.legend(legend, loc=6, bbox_to_anchor=(1, 0.5))
     ax1.axis('equal')
 
-    plt.savefig(f'{u_id}.jpg', dpi=150)
+    plt.savefig(f'{u_id}.jpg', bbox_extra_artists=(lgd,), bbox_inches='tight', dpi=72.72)
     return True

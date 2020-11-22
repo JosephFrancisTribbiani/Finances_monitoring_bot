@@ -1,20 +1,4 @@
 from telebot import types
-from datetime import datetime
-
-MONTHS = {
-    1: 'Январь',
-    2: 'Февраль',
-    3: 'Март',
-    4: 'Апрель',
-    5: 'Май',
-    6: 'Июнь',
-    7: 'Июль',
-    8: 'Август',
-    9: 'Сентябрь',
-    10: 'Октябрь',
-    11: 'Ноябрь',
-    12: 'Декабрь'
-}
 
 
 def y_n_keyboard(clb_data: str):
@@ -49,15 +33,19 @@ def main_keyboard():
 
 
 def statistic_kb():
-    cb_button_monthly_stat = 'monthly_stat_current'
+    cb_button_current_month = 'stat|cur_m'
+    cb_button_previous_month = 'stat|pre_m'
+    cb_button_today = 'stat|td'
 
     titles = {
-        cb_button_monthly_stat: "За текущий месяц"
+        cb_button_today: "За сегодня",
+        cb_button_current_month: "За текущий месяц",
+        cb_button_previous_month: "За предыдущий месяц"
     }
 
     markup = types.InlineKeyboardMarkup()
-    keyboard = [
-        types.InlineKeyboardButton(titles[cb_button_monthly_stat], callback_data=cb_button_monthly_stat)
-    ]
+    markup.add(types.InlineKeyboardButton(titles[cb_button_today], callback_data=cb_button_today))
+    markup.add(types.InlineKeyboardButton(titles[cb_button_current_month], callback_data=cb_button_current_month))
+    markup.add(types.InlineKeyboardButton(titles[cb_button_previous_month], callback_data=cb_button_previous_month))
 
-    return markup.add(*keyboard)
+    return markup

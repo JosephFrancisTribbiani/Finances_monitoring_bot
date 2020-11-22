@@ -20,10 +20,10 @@ def msg_parser(msg: str):
 
     - Дата в формате '%Y-%m-%d' -> str
     """
-    p_msg = re.match(r'(?:([\d/]+)\s+)?'        # group(1) - дата
-                     r'((?:\d*[.,])?\d+)\s*'    # group(2) - сумма
-                     r'([+-])?\s+'              # group(3) - знак
-                     r'(.+)',                   # group(4) - категория
+    p_msg = re.match(r'(?:([\d/]+)\s+)?'  # group(1) - дата
+                     r'((?:\d*[.,])?\d+)\s*'  # group(2) - сумма
+                     r'([+-])?\s+'  # group(3) - знак
+                     r'(.+)',  # group(4) - категория
                      msg[::-1].strip())
 
     category = p_msg.group(4)[::-1].lower()

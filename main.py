@@ -13,6 +13,21 @@ import re
 
 bot = telebot.TeleBot(token=TOKEN)
 
+MONTHS = {
+    1: 'Январь',
+    2: 'Февраль',
+    3: 'Март',
+    4: 'Апрель',
+    5: 'Май',
+    6: 'Июнь',
+    7: 'Июль',
+    8: 'Август',
+    9: 'Сентябрь',
+    10: 'Октябрь',
+    11: 'Ноябрь',
+    12: 'Декабрь'
+}
+
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -68,7 +83,9 @@ def all_commands(message):
                                       'Если их несколько, перечисли их через запятую\n'
                                       '/my_categories - эта команда выведет список твоих категорий трат и доходов\n'
                                       '/stop - команда, сбрасывающая состояние пользователя (например, если '
-                                      'после вызова команды /set_limit, вы передумали изменять свой суточный лимит')
+                                      'после вызова команды /set_limit, вы передумали изменять свой суточный лимит\n'
+                                      '/get_stat - команда, по который ты можешь получить отчет по тратам '
+                                      'за определенный период')
 
 
 @bot.message_handler(commands=['stop'])
@@ -234,30 +251,58 @@ def some_text(message):
     bot.send_message(message.chat.id, 'Я не понимаю\nПопробуй воспользоваться /help')
 
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_inline(call):
-    if call.message:
-        var = call.data.split('|')
-        if var[0] == 'add':
-            # var[1] - категория
-            # var[2] - тип (in или out)
-            # var[3] - сумма
-            # var[4] - дата
-            add_cat_into_db(call.message.chat.id, var[1], var[2])  # добавляем новую категорию в базу
-            add_exp_into_db(call.message.chat.id, var[1], var[3], var[4])
-            record_confirm(msg_id=call.message.chat.id)
-        elif var[0] == 'set_limit':
-            set_limit_ini(call.message)
-        elif call.data == 'cb_button_no':
-            bot.send_message(chat_id=call.message.chat.id, text=answers('No'))
-        elif call.data == 'monthly_stat_current':
-            d_from = date.today().replace(day=1).strftime('%Y-%m-%d')
-            d_to = (date.today().replace(day=1, month=date.today().month + 1) - timedelta(days=1)).strftime('%Y-%m-%d')
-            if not pie_plot_creation(u_id=call.message.chat.id, d_from=d_from, d_to=d_to):
-                bot.send_message(call.message.chat.id, 'Данные за указаный период отсутствуют')
-            else:
-                bot.send_photo(call.message.chat.id, photo=open(f"{call.message.chat.id}.jpg", 'rb'))
-        bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
+#
+# Блок кода с CALL_BACK_HANDLER
+#
+@bot.callback_query_handler(func=lambda call: call.data.startswith('add|'))
+def cb_inline_add_cat(call):
+    var = call.data.split('|')
+    # var[1] - категория
+    # var[2] - тип (in или out)
+    # var[3] - сумма
+    # var[4] - дата
+    add_cat_into_db(call.message.chat.id, var[1], var[2])  # добавляем новую категорию в базу
+    add_exp_into_db(call.message.chat.id, var[1], var[3], var[4])
+    record_confirm(msg_id=call.message.chat.id)
+    bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'cb_button_no')
+def cb_inline_no(call):
+    bot.send_message(chat_id=call.message.chat.id, text=answers('No'))
+    bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'set_limit')
+def cb_inline_set_limit(call):
+    set_limit_ini(call.message)
+    bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('stat|'))
+def cb_get_pie_chart(call):
+    cb_data = call.data.split('|')
+    if cb_data[1] == 'cur_m':
+        d_from = date.today().replace(day=1).strftime('%Y-%m-%d')
+        d_to = (date.today().replace(day=1, month=date.today().month + 1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        title = MONTHS[date.today().month]
+    elif cb_data[1] == 'pre_m':
+        d_from = date.today().replace(day=1, month=date.today().month - 1).strftime('%Y-%m-%d')
+        d_to = (date.today().replace(day=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        title = MONTHS[date.today().month - 1]
+    else:
+        d_from = date.today().strftime('%Y-%m-%d')
+        d_to = date.today().strftime('%Y-%m-%d')
+        title = 'сегодня'
+
+    df = pie_plot_creation(u_id=call.message.chat.id, d_from=d_from, d_to=d_to,
+                           title=f'за {title}')
+
+    if not df:
+        bot.send_message(call.message.chat.id, 'Данные за указаный период отсутствуют')
+    else:
+        bot.send_photo(call.message.chat.id, photo=open(f"{call.message.chat.id}.jpg", 'rb'))
+    bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
 
 
 def main():
