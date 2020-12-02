@@ -1,4 +1,4 @@
-from config import TOKEN, PORT
+from config import TOKEN
 from flask import Flask, request
 from db import init_db, collect_user, collect_msg_into_db, add_cat_into_db, check_user, check_category
 from db import get_my_cat_db, add_exp_into_db, get_limit, set_state, set_limit_db, get_state
