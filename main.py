@@ -322,7 +322,6 @@ def webhook():
 
 def main():
     init_db(force=False)
-    server.run(host="0.0.0.0", port=int(PORT))
 
 
 def record_confirm(msg_id):
@@ -342,4 +341,5 @@ def record_confirm(msg_id):
 
 
 if __name__ == '__main__':
+    server.run(host="0.0.0.0", port=PORT)
     main()
