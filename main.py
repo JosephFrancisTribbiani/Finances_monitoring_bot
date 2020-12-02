@@ -11,6 +11,7 @@ from _collections import defaultdict
 from datetime import date, timedelta
 import telebot
 import re
+import os
 
 bot = telebot.TeleBot(token=TOKEN)
 server = Flask(__name__)
@@ -322,7 +323,6 @@ def webhook():
 
 def main():
     init_db(force=False)
-    server.run(host="0.0.0.0", port=PORT)
 
 
 def record_confirm(msg_id):
@@ -342,4 +342,5 @@ def record_confirm(msg_id):
 
 
 if __name__ == '__main__':
+    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
     main()
