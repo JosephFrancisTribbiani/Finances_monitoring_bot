@@ -1,4 +1,5 @@
-from config import TOKEN
+from config import TOKEN, PORT
+from flask import Flask, request
 from db import init_db, collect_user, collect_msg_into_db, add_cat_into_db, check_user, check_category
 from db import get_my_cat_db, add_exp_into_db, get_limit, set_state, set_limit_db, get_state
 from db import spent_daily
@@ -12,6 +13,7 @@ import telebot
 import re
 
 bot = telebot.TeleBot(token=TOKEN)
+server = Flask(__name__)
 
 MONTHS = {
     1: 'Январь',
@@ -305,9 +307,22 @@ def cb_get_pie_chart(call):
     bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
 
 
+@server.route('/' + TOKEN, methods=['POST'])
+def get_message():
+    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    return "!", 200
+
+
+@server.route("/")
+def webhook():
+    bot.remove_webhook()
+    bot.set_webhook(url='https://control-your-expences-bot.herokuapp.com/' + TOKEN)
+    return "!", 200
+
+
 def main():
     init_db(force=False)
-    bot.polling(none_stop=True, interval=0)
+    server.run(host="0.0.0.0", port=int(PORT))
 
 
 def record_confirm(msg_id):

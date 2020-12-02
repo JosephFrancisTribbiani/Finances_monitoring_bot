@@ -7,3 +7,4 @@ load_dotenv()
 
 TOKEN = environ.get('TOKEN')
 DATABASE_URL = environ.get('DATABASE_URL')
+PORT = environ.get('PORT', 5000)
