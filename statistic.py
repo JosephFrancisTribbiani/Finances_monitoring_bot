@@ -3,6 +3,18 @@ from db import get_user_data
 
 
 def pie_plot_creation(u_id, d_from, d_to, title):
+    """
+    Данная функция нужна для построения круговой диаграммы по данным пользователя.
+    Круговая диаграмма может быть построена:
+    - за сегодня
+    - за текущий месяц
+    - за предыдущий месяц
+    :param u_id: id пользователя
+    :param d_from: начальная дата
+    :param d_to: конечная дата
+    :param title: название диаграммы
+    :return: True - диагрмма построена, False - данных за указанный период нет
+    """
     query = """
     SELECT t1.description AS name, sum(t2.value) AS value
     FROM u_inout AS t1

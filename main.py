@@ -9,6 +9,7 @@ from keyboards import *
 from exceptions import *
 from _collections import defaultdict
 from datetime import date, timedelta
+from calendar import monthrange
 import telebot
 import re
 
@@ -285,19 +286,24 @@ def cb_inline_set_limit(call):
 def cb_get_pie_chart(call):
     cb_data = call.data.split('|')
     if cb_data[1] == 'cur_m':
-        d_from = date.today().replace(day=1).strftime('%Y-%m-%d')
-        d_to = (date.today().replace(day=1, month=date.today().month + 1) - timedelta(days=1)).strftime('%Y-%m-%d')
-        title = MONTHS[date.today().month]
+        d_from = date.today().replace(day=1)
+        d_to = d_from.replace(day=monthrange(d_from.year, d_from.month)[1])
+        title = MONTHS[d_from.month]
     elif cb_data[1] == 'pre_m':
-        d_from = date.today().replace(day=1, month=date.today().month - 1).strftime('%Y-%m-%d')
-        d_to = (date.today().replace(day=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+        d_to = (date.today().replace(day=1) - timedelta(days=1))
+        d_from = d_to.replace(day=1)
         title = MONTHS[date.today().month - 1]
     else:
-        d_from = date.today().strftime('%Y-%m-%d')
-        d_to = date.today().strftime('%Y-%m-%d')
+        d_from = date.today()
+        d_to = date.today()
         title = 'сегодня'
 
-    df = pie_plot_creation(u_id=call.message.chat.id, d_from=d_from, d_to=d_to,
+    d_from = d_from.strftime('%Y-%m-%d')
+    d_to = d_to.strftime('%Y-%m-%d')
+
+    df = pie_plot_creation(u_id=call.message.chat.id,
+                           d_from=d_from,
+                           d_to=d_to,
                            title=f'за {title}')
 
     if not df:
