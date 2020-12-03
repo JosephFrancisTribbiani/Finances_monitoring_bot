@@ -1,4 +1,4 @@
-from config import TOKEN
+from config import TOKEN, PORT
 from flask import Flask, request
 from db import init_db, collect_user, collect_msg_into_db, add_cat_into_db, check_user, check_category
 from db import get_my_cat_db, add_exp_into_db, get_limit, set_state, set_limit_db, get_state
@@ -11,7 +11,6 @@ from _collections import defaultdict
 from datetime import date, timedelta
 import telebot
 import re
-import os
 
 bot = telebot.TeleBot(token=TOKEN)
 server = Flask(__name__)
@@ -342,5 +341,5 @@ def record_confirm(msg_id):
 
 
 if __name__ == '__main__':
-    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
+    server.run(host="0.0.0.0", port=PORT)
     main()
