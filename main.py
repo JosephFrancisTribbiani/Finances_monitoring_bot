@@ -301,15 +301,16 @@ def cb_get_pie_chart(call):
     d_from = d_from.strftime('%Y-%m-%d')
     d_to = d_to.strftime('%Y-%m-%d')
 
-    df = pie_plot_creation(u_id=call.message.chat.id,
-                           d_from=d_from,
-                           d_to=d_to,
-                           title=f'за {title}')
+    total = pie_plot_creation(u_id=call.message.chat.id,
+                              d_from=d_from,
+                              d_to=d_to,
+                              title=f'за {title}')
 
-    if not df:
+    if not total:
         bot.send_message(call.message.chat.id, 'Данные за указаный период отсутствуют')
     else:
         bot.send_photo(call.message.chat.id, photo=open(f"{call.message.chat.id}.png", 'rb'))
+        bot.send_message(call.message.chat.id, 'Всего потрачено: {:.2f} руб.'.format(total))
     bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup='')
 
 

@@ -92,7 +92,7 @@ def pie_plot_creation(u_id, d_from, d_to, title):
         fig.tight_layout(rect=(0, 0, 1, 1))
 
         plt.savefig(f'{u_id}.png', bbox_inches='tight', dpi=80)
-    return True
+    return df.value.sum()
 
 
 def pie_data(pct):
